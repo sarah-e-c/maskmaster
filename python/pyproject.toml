@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "maskmaster"
+version = "0.1.0"
+description = "Compute NVIDIA TPC partition disable-masks in libsmctrl-native form. Compute-only; never applies masks or calls CUDA."
+requires-python = ">=3.10"
+readme = "../README.md"
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["maskmaster*"]
+
+[tool.setuptools.package-data]
+maskmaster = ["index.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

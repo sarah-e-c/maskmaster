@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>maskmaster — TPC partition masks</title>
+<style>
+  :root {
+    --bg:#0f1117; --panel:#1a1d27; --ink:#e6e8ee; --muted:#8b90a0;
+    --grid:#2a2e3a; --victim:#3b82f6; --enemy:#f59e0b; --overlap:#ef4444;
+    --swept:#23262f; --ok:#34d399; --warn:#f87171;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+    font:14px/1.45 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  header { padding:14px 20px; border-bottom:1px solid var(--grid);
+    display:flex; gap:16px; align-items:baseline; flex-wrap:wrap; }
+  header h1 { font-size:16px; margin:0; letter-spacing:.04em; }
+  .meta { color:var(--muted); font-size:12px; }
+  main { display:grid; grid-template-columns: 1fr 360px; gap:20px; padding:20px; }
+  @media (max-width: 900px){ main { grid-template-columns:1fr; } }
+  .panel { background:var(--panel); border:1px solid var(--grid);
+    border-radius:10px; padding:16px; }
+  .gpcs { display:flex; gap:14px; flex-wrap:wrap; }
+  .gpc { background:#13161f; border:1px solid var(--grid); border-radius:8px;
+    padding:10px; min-width:64px; }
+  .gpc h3 { margin:0 0 8px; font-size:12px; color:var(--muted); font-weight:600;
+    text-align:center; }
+  .cell { width:48px; height:34px; margin:4px auto; border-radius:6px;
+    border:1px solid var(--grid); display:flex; align-items:center;
+    justify-content:center; font-size:12px; cursor:pointer; user-select:none;
+    background:#10131b; color:var(--ink); transition:transform .04s; }
+  .cell:hover { transform:translateY(-1px); }
+  .cell.swept { background:var(--swept); color:#4a4f5c; cursor:not-allowed;
+    border-style:dashed; }
+  .cell.victim { background:var(--victim); border-color:var(--victim); color:#fff; }
+  .cell.enemy  { background:var(--enemy);  border-color:var(--enemy);  color:#1a1d27; }
+  .cell.overlap{ background:var(--overlap); border-color:var(--overlap); color:#fff; }
+  .controls { display:flex; flex-direction:column; gap:14px; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  button { background:#252a37; color:var(--ink); border:1px solid var(--grid);
+    border-radius:6px; padding:6px 10px; cursor:pointer; font-size:13px; }
+  button:hover { background:#2f3545; }
+  button.active { background:var(--victim); border-color:var(--victim); color:#fff; }
+  button.active.enemy { background:var(--enemy); border-color:var(--enemy); color:#1a1d27; }
+  input[type=number]{ width:56px; background:#10131b; color:var(--ink);
+    border:1px solid var(--grid); border-radius:6px; padding:5px; }
+  input[type=text]{ width:90px; background:#10131b; color:var(--ink);
+    border:1px solid var(--grid); border-radius:6px; padding:5px; }
+  .headline { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  .mask-big { font-size:22px; font-weight:700; word-break:break-all; color:#fff; }
+  .label { color:var(--muted); font-size:11px; text-transform:uppercase;
+    letter-spacing:.08em; }
+  .cfg { font-family:ui-monospace,monospace; font-size:12px; word-break:break-all;
+    background:#10131b; border:1px solid var(--grid); border-radius:6px;
+    padding:8px; color:var(--muted); }
+  .readout { display:grid; grid-template-columns:auto auto; gap:4px 14px; font-size:13px; }
+  .readout b { color:var(--muted); font-weight:500; }
+  .pill { padding:1px 8px; border-radius:999px; font-size:12px; }
+  .pill.ok { background:rgba(52,211,153,.15); color:var(--ok); }
+  .pill.no { background:rgba(248,113,113,.15); color:var(--warn); }
+  .copy { font-size:11px; padding:3px 8px; }
+  .legend { display:flex; gap:12px; flex-wrap:wrap; color:var(--muted);
+    font-size:12px; margin-top:10px; }
+  .swatch { display:inline-block; width:12px; height:12px; border-radius:3px;
+    vertical-align:-1px; margin-right:4px; }
+  hr { border:none; border-top:1px solid var(--grid); margin:6px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>maskmaster</h1>
+  <span class="meta" id="topoMeta">loading…</span>
+</header>
+<main>
+  <section class="panel">
+    <div class="row" style="margin-bottom:10px">
+      <span class="label">editing</span>
+      <button id="layerVictim" class="active" onclick="setLayer('victim')">victim</button>
+      <button id="layerEnemy" onclick="setLayer('enemy')">enemy</button>
+      <label class="meta"><input type="checkbox" id="enemyOn" onchange="render()"> enable enemy</label>
+      <button onclick="clearLayer()">clear</button>
+    </div>
+    <div class="gpcs" id="gpcs"></div>
+    <div class="legend">
+      <span><span class="swatch" style="background:var(--victim)"></span>victim</span>
+      <span><span class="swatch" style="background:var(--enemy)"></span>enemy</span>
+      <span><span class="swatch" style="background:var(--overlap)"></span>overlap</span>
+      <span><span class="swatch swept" style="background:var(--swept);border:1px dashed var(--grid)"></span>floorswept</span>
+    </div>
+    <hr style="margin:16px 0">
+    <div class="row">
+      <span class="label">strategy &rarr; victim</span>
+      <button onclick="applyStrategy('pack')">pack</button>
+      <button onclick="applyStrategy('spread')">spread</button>
+      n=<input type="number" id="nInput" value="6" min="0">
+      <span style="width:12px"></span>
+      <button onclick="applyGpcs()">pick GPCs</button>
+      <input type="text" id="gpcInput" placeholder="0,1">
+    </div>
+  </section>
+
+  <aside class="panel controls">
+    <div>
+      <div class="label">libsmctrl mask — paste into libsmctrl</div>
+      <div class="mask-big headline" id="victimMask">—</div>
+      <button class="copy" onclick="copyText('victimMask')">copy mask</button>
+    </div>
+    <div>
+      <div class="label">MaskConfig</div>
+      <div class="cfg" id="victimCfg">—</div>
+      <button class="copy" onclick="copyText('victimCfg')">copy config</button>
+    </div>
+    <hr>
+    <div class="readout" id="victimReadout"></div>
+    <div id="enemyBlock" style="display:none">
+      <hr>
+      <div class="label">enemy</div>
+      <div class="cfg" id="enemyMask">—</div>
+      <div class="readout" id="enemyReadout"></div>
+      <div class="row" style="margin-top:8px">
+        <span class="label">disjoint?</span> <span id="disjoint">—</span>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<script>
+let TOPO = null;
+let layer = "victim";
+const sel = { victim: new Set(), enemy: new Set() };
+
+async function init() {
+  TOPO = await (await fetch("/api/topology")).json();
+  document.getElementById("topoMeta").textContent =
+    `${TOPO.source} · ${TOPO.num_gpcs} GPCs · ${TOPO.num_tpcs} TPCs · `
+    + `full ${TOPO.full_mask} · fp ${TOPO.fingerprint}`;
+  buildGrid();
+  render();
+}
+
+function buildGrid() {
+  const wrap = document.getElementById("gpcs");
+  wrap.innerHTML = "";
+  // One column per GPC, listing only that GPC's actual TPC bits (which may be
+  // interleaved, e.g. 0,5,10,... on striped hardware — never assume contiguity).
+  for (const g of TOPO.gpcs) {
+    const col = document.createElement("div");
+    col.className = "gpc";
+    col.innerHTML = `<h3>GPC ${g.id}<br><span style="font-size:10px">cap ${g.capacity}</span></h3>`;
+    for (const bit of g.bits) {
+      const cell = document.createElement("div");
+      cell.dataset.bit = bit;
+      cell.className = "cell";
+      cell.textContent = bit;
+      cell.title = `mask bit ${bit}`;
+      cell.onclick = () => toggle(bit);
+      col.appendChild(cell);
+    }
+    wrap.appendChild(col);
+  }
+  // Floorswept TPCs aren't attributable to a GPC from get_gpc_info, so show them
+  // in their own greyed column (only if any exist).
+  if (TOPO.floorswept && TOPO.floorswept.length) {
+    const col = document.createElement("div");
+    col.className = "gpc";
+    col.innerHTML = `<h3>swept<br><span style="font-size:10px">disabled</span></h3>`;
+    for (const bit of TOPO.floorswept) {
+      const cell = document.createElement("div");
+      cell.className = "cell swept";
+      cell.textContent = bit;
+      cell.title = `floorswept (mask bit ${bit}, not in full_mask)`;
+      col.appendChild(cell);
+    }
+    wrap.appendChild(col);
+  }
+}
+
+function setLayer(l) {
+  layer = l;
+  document.getElementById("layerVictim").classList.toggle("active", l === "victim");
+  document.getElementById("layerEnemy").classList.toggle("active", l === "enemy");
+  document.getElementById("layerEnemy").classList.toggle("enemy", l === "enemy");
+}
+function clearLayer() { sel[layer].clear(); render(); }
+
+function toggle(bit) {
+  const s = sel[layer];
+  if (s.has(bit)) s.delete(bit); else s.add(bit);
+  render();
+}
+
+function enemyEnabled() { return document.getElementById("enemyOn").checked; }
+
+async function applyStrategy(strategy) {
+  const n = parseInt(document.getElementById("nInput").value || "0", 10);
+  const res = await postCompute({ victim: { strategy, n }, enemy: enemySpec() });
+  if (res.error) { alert(res.error); return; }
+  sel.victim = new Set(res.victim.bits);     // adopt returned selection
+  paint(res);
+}
+
+async function applyGpcs() {
+  const ids = (document.getElementById("gpcInput").value || "")
+    .split(",").map(s => s.trim()).filter(s => s.length).map(Number);
+  const res = await postCompute({ victim: { strategy: "gpcs", gpcs: ids }, enemy: enemySpec() });
+  if (res.error) { alert(res.error); return; }
+  sel.victim = new Set(res.victim.bits);
+  paint(res);
+}
+
+function enemySpec() {
+  return enemyEnabled() ? { bits: [...sel.enemy] } : null;
+}
+
+async function postCompute(body) {
+  return (await fetch("/api/compute", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })).json();
+}
+
+async function render() {
+  document.getElementById("enemyBlock").style.display = enemyEnabled() ? "block" : "none";
+  const res = await postCompute({ victim: { bits: [...sel.victim] }, enemy: enemySpec() });
+  if (res.error) { alert(res.error); return; }
+  paint(res);
+}
+
+function paint(res) {
+  // cells
+  const vset = new Set(res.victim.bits);
+  const eset = new Set(res.enemy ? res.enemy.bits : []);
+  document.querySelectorAll(".cell").forEach(cell => {
+    if (cell.classList.contains("swept")) return;
+    const bit = Number(cell.dataset.bit);
+    cell.classList.remove("victim", "enemy", "overlap");
+    const inV = vset.has(bit), inE = eset.has(bit);
+    if (inV && inE) cell.classList.add("overlap");
+    else if (inV) cell.classList.add("victim");
+    else if (inE) cell.classList.add("enemy");
+  });
+  // headline
+  document.getElementById("victimMask").textContent = res.victim.disable_mask;
+  document.getElementById("victimCfg").textContent = res.victim.config;
+  document.getElementById("victimReadout").innerHTML = readout(res.victim);
+  // enemy
+  if (res.enemy) {
+    document.getElementById("enemyMask").textContent =
+      res.enemy.disable_mask + "  ·  " + res.enemy.config;
+    document.getElementById("enemyReadout").innerHTML = readout(res.enemy);
+    document.getElementById("disjoint").innerHTML = pill(res.disjoint);
+  }
+}
+
+function readout(p) {
+  return `<b>permitted TPCs</b><span>${p.count}</span>`
+    + `<b>GPCs spanned</b><span>${p.gpcs_spanned}</span>`
+    + `<b>gpc_aligned?</b><span>${pill(p.gpc_aligned)}</span>`
+    + `<b>enable view</b><span class="headline">${p.enable_mask}</span>`;
+}
+function pill(b) {
+  return b === null ? "—"
+    : `<span class="pill ${b ? "ok" : "no"}">${b ? "yes" : "no"}</span>`;
+}
+
+function copyText(id) {
+  navigator.clipboard.writeText(document.getElementById(id).textContent.trim());
+}
+
+init();
+</script>
+</body>
+</html>
