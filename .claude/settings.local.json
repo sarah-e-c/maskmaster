@@ -3,7 +3,28 @@
     "allow": [
       "Bash(python3 -m pytest -q)",
       "Bash(make clean *)",
-      "Bash(make check *)"
+      "Bash(make check *)",
+      "Bash(lsmod)",
+      "Read(//home/sarahcrowder/**)",
+      "Read(//usr/**)",
+      "Read(//opt/**)",
+      "Bash(nm /home/sarahcrowder/Documents/maskmaster/c/libmaskmaster.so)",
+      "Bash(lspci)",
+      "Bash(nvidia-smi --query-gpu=name,driver_version --format=csv,noheader)",
+      "Bash(cc --version)",
+      "Bash(curl -s --connect-timeout 5 http://rtsrv.cs.unc.edu/cgit/cgit.cgi/libsmctrl.git/ -o /dev/null -w \"%{http_code}\")",
+      "Bash(git clone *)",
+      "Bash(make libsmctrl.so)",
+      "Bash(dnf repolist *)",
+      "Bash(rpm -qa)",
+      "Bash(awk '{print $1}')",
+      "Bash(dnf search *)",
+      "Bash(rpm -ql xorg-x11-drv-nvidia-cuda-595.80-1.fc44.x86_64)",
+      "Bash(dnf --disablerepo=\"*\" --enablerepo=\"rpmfusion-nonfree*\" list available)",
+      "Bash(sudo dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/cuda-rhel9.repo 2>&1)",
+      "Bash(dnf --repofrompath=cuda-repo,https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/ --repo=cuda-repo search cuda-cudart-devel)",
+      "Bash(make libsmctrl.so CUDA_HOME=/usr/local/cuda-12.9)",
+      "Bash(make DISCOVERY=1 SMCTRL_DIR=/home/sarahcrowder/libsmctrl)"
     ]
   }
 }

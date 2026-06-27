@@ -50,7 +50,7 @@ TPC bits are **interleaved**, not contiguous — capacities are always derived f
 ## Repository layout
 
 ```
-research_code/
+maskmaster/
   c/
     maskmaster.h            # public C API (source of truth)
     maskmaster.c            # topology, strategies, predicates, inversion, discovery

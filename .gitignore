@@ -1,0 +1,22 @@
+# C build artifacts
+c/*.o
+c/libmaskmaster.so
+c/libmaskmaster.dylib
+c/libmaskmaster.a
+c/test_topology
+c/test_enum
+
+# Python
+python/**/__pycache__/
+python/**/*.pyc
+python/**/*.pyo
+python/*.egg-info/
+python/maskmaster/*.egg-info/
+python/.eggs/
+dist/
+build/
+
+# Editor / OS
+.DS_Store
+*.swp
+*.swo

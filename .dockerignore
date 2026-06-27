@@ -1,0 +1,11 @@
+.git
+c/*.o
+c/libmaskmaster.so
+c/libmaskmaster.dylib
+c/libmaskmaster.a
+c/test_topology
+c/test_enum
+python/**/__pycache__
+python/**/*.pyc
+python/maskmaster/__pycache__
+python/tests/__pycache__
